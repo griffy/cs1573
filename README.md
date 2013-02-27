@@ -1,4 +1,8 @@
 cs1573
 ======
 
-Machine learning for great good
+Rishi, Joel, Kathleen
+Term Project2
+Dr. Hwa
+
+Machine learning for great good, also for categorizing emails and shit.

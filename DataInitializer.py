@@ -1,5 +1,4 @@
 
-
 import sys
 import os
 import re
@@ -12,7 +11,8 @@ class DataInitializer(object):
         folder_name     :-      String that is to regexp match one of the enron
                                 folders (defaults to beck)
     Methods:
-        make_pahts()    :-      Prints to stdout   <class> <file-path>
+        initialize_mapping()    :-      Prints to stdout   <class> <file-path>
+                                        Fills   class_document_map dictionary
     """
     
     def __init__(self, folder_name = 'beck'):
@@ -60,6 +60,7 @@ class DataInitializer(object):
         """
         For testing purposes.
         Just prints out the mapping between classifications and their emails.
+        (self.class_document_map)
         """
         for k in di.class_document_map:
             print str(k) + " : " + str(di.class_document_map[k])

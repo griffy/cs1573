@@ -3,7 +3,7 @@ cs1573
 
 Rishi, Joel, Kathleen
 
-Term Project2
+Term Project
 
 Dr. Hwa
 

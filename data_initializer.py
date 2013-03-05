@@ -62,8 +62,8 @@ class DataInitializer(object):
         Just prints out the mapping between classifications and their emails.
         (self.class_document_map)
         """
-        for k in di.class_document_map:
-            print str(k) + " : " + str(di.class_document_map[k])
+        for k in self.class_document_map:
+            print str(k) + " : " + str(self.class_document_map[k])
 
     def tf_idf(self, word, document, classification):
         """

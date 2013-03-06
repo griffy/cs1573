@@ -8,62 +8,22 @@ class DataInitializer(object):
     Class that will be used to set up the feature vector.
     
     Arguments (for constructor):
-        folder_name     :-      String that is to regexp match one of the enron
-                                folders (defaults to beck)
-    Methods:
-        initialize_mapping()    :-      Prints to stdout   <class> <file-path>
-                                        Fills   class_document_map dictionary
+        data_set     :-      List of tuples passed from driver.py
+                             [(classification1, path1), (classification2, path2),...]
+    Important Methods:
+
+    Goal:
+        Return a matrix of of the form |class|feature1|feature2|...|
+                                       |...  | ...    | ...    |...|
+
     """
     
-    def __init__(self, folder_name = 'beck'):
+    def __init__(self, data_set):
         """
-        Given folder_name, supplies data_path, which contains the relative path
-        to that users email folders.
-        Wanted to do fuzzy matching because Rishi is forgetful
+        Retrieves the data set whose features matrix will be set up
         """
-        self.data_path = ''
-        self.class_document_map = dict()
+        self.data_set = data_set
         
-        reg_obj = re.compile(".*" + folder_name + ".*", re.IGNORECASE)
-        if reg_obj.search("beck-s"):
-            self.data_path = "data/beck-s/"
-        elif reg_obj.search("former-d"):
-            self.data_path = "data/former-d/" 
-        elif reg_obj.search("kaminski-v"):
-            self.data_path = "data/kaminski-v/" 
-        elif reg_obj.search("kitchen-l"):
-            self.data_path = "data/kitchen-l/" 
-        elif reg_obj.search("lokay-m"):
-            self.data_path = "data/lokay-m/" 
-        elif reg_obj.search("sanders-r"):
-            self.data_path = "data/sanders-r/" 
-        elif reg_obj.search("williams-w3"):
-            self.data_path = "data/williams-w3/"
-
-    def initialize_mapping(self):
-        """
-        Fills class_document_map   :-
-               class_document_map['classname'] = [emailpath_1, ..., emailpath_n]
-               Going to need this later for doq_freq()
-        """
-        for root, dirs, files in os.walk(os.path.join(os.getcwd(), self.data_path)):
-            for f in files:
-                if str(os.path.split(root)[1]) in self.class_document_map:
-                    self.class_document_map[str(os.path.split(root)[1])].append(str(os.path.join(root, f)))
-                else:
-                    self.class_document_map[str(os.path.split(root)[1])] = []
-                    self.class_document_map[str(os.path.split(root)[1])].append(str(os.path.join(root, f)))
-                sys.stdout.write(str(os.path.split(root)[1]) + "\t" + \
-                                     str(os.path.join(root, f)) + "\n")
-
-    def print_class_document_map(self):
-        """
-        For testing purposes.
-        Just prints out the mapping between classifications and their emails.
-        (self.class_document_map)
-        """
-        for k in self.class_document_map:
-            print str(k) + " : " + str(self.class_document_map[k])
 
     def tf_idf(self, word, document, classification):
         """

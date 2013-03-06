@@ -1,8 +1,3 @@
-
-import sys
-import os
-import re
-
 class DataInitializer(object):
     """
     Class that will be used to set up the feature vector.

@@ -1,3 +1,4 @@
+import random
 import sys
 import os
 import re
@@ -5,11 +6,11 @@ import re
 class Experiment(object):
     """
     This is the class that will set up the experiment
-            :- Read in data from enron folders
-            :- K-fold it
-            :- Pass it to data initializer to set up feature matrix
-            :- Pass feature matrix to various testing alogirthms
-            :- Conduct statistical tests on the different algorithms used
+        :- Read in data from enron folders
+        :- K-fold it
+        :- Pass it to data initializer to set up feature matrix
+        :- Pass feature matrix to various testing alogirthms
+        :- Conduct statistical tests on the different algorithms used
     """
 
     def __init__(self, folder_name = 'beck'):
@@ -40,7 +41,7 @@ class Experiment(object):
     def retrieve_data(self):
         """
         Fills list raw_data_set
-              :- List of tuples  --
+                :- List of tuples  --
                 :- [(classification1, path1), (classification2, path2), ...    ]
         """
         for root, dirs, files in os.walk(os.path.join(os.getcwd(), self.data_path)):
@@ -54,8 +55,11 @@ class Experiment(object):
         for training_example in self.raw_data_set:
             print training_example[0] + "\t" + training_example[1]
 
-    def k_fold(self, k=10):
+    def k_fold(k=10, randomize=True):
         """
-        Randomizes raw_data_set and returns 10 subsets of it.
-        """
-        pass
+        Shuffles the dataset, then cuts it in to k datasets
+        RETURNS:
+                List of k shuffled datasets
+        """        
+
+    

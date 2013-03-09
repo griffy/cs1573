@@ -10,6 +10,10 @@ def main():
         folder_name = sys.argv[1]
         experiment = Experiment(folder_name)
 	experiment.retrieve_data()
-        experiment.print_raw_data_set()
-
+	di = DataInitializer(experiment.raw_data_set)
+	(names, secondary_names, body_text) = di.get_mail_elements("/Users/rishisadhir/Dropbox/School/cs1573/term-project/main/cs1573/data/beck-s/moscoso__mike/4.")
+	print names
+	print secondary_names
+	print body_text
+	
 main()

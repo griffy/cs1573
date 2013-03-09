@@ -1,3 +1,6 @@
+import re
+import pdb
+
 class DataInitializer(object):
     """
     Class that will be used to set up the feature vector.
@@ -65,3 +68,55 @@ class DataInitializer(object):
 
     def information_gain(self):
         pass
+
+    def get_mail_elements(self, document_address):
+        """
+        This method is meant to abstract an email in to objects we can parse.
+        Two sets of words for names and a long string for the body.
+        ARGUMENTS
+                document_address :- The full path to the email we are parsing
+        RETURNS
+                (names, secondary_names, body_text)
+                        names           :- Set of names found in the To and From sections.
+                        secondary_names :- Set of names found in the cc and bcc sections.
+                        body_text       :- Long string that represents the body.
+        """
+        f = open(document_address)
+        names = set()
+        secondary_names = set()
+        body_found = False
+        body_text = ''
+        to_regex_obj   = re.compile("^X-To:.*")
+        cc_regex_obj   = re.compile("^X-cc:.*")
+        bcc_regex_obj  = re.compile("^X-bcc:.*")
+        body_regex_obj = re.compile("^X-FileName:.*")
+        from_regex_obj = re.compile("^X-From:.*")
+        lines = f.readlines()
+        for line in lines:
+            if body_found:
+                body_text += line.strip() + " "
+                continue
+            if from_regex_obj.search(line):
+                line = line[len("X-From:"):]
+                for elt in line.split(","):
+                    if elt.strip() != '':
+                        names.add(elt.strip())
+            elif to_regex_obj.search(line):
+                line = line[len("X-To:"):]
+                for elt in line.split(","):
+                    if elt.strip() != '':
+                        names.add(elt.strip())
+            elif cc_regex_obj.search(line):
+                line = line[len("X-cc:"):]
+                for elt in line.split(","):
+                    if elt.strip() != '':
+                        secondary_names.add(elt.strip())
+            elif bcc_regex_obj.search(line):
+                line = line[len("X-bcc:"):]
+                for elt in line.split(","):
+                    if elt.strip() != '':
+                        secondary_names.add(elt.strip())
+            elif body_regex_obj.search(line):
+                body_found = True
+        f.close()
+        return (names, secondary_names, body_text.strip())

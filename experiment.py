@@ -15,7 +15,7 @@ class Experiment(object):
 
     def __init__(self, folder_name = 'beck'):
         """
-        Given folder_name, supplies data_path, which contains the relative path
+        Given folder_name, supplies class level var data_path, which contains the relative path
         to that users email folders.
         Wanted to do fuzzy matching because Rishi is forgetful
         """
@@ -41,12 +41,12 @@ class Experiment(object):
     def retrieve_data(self):
         """
         Fills list raw_data_set
-                :- List of tuples  --
-                :- [(classification1, path1), (classification2, path2), ...    ]
+                :- List of lists  --
+                :- [[classification1, path1], [classification2, path2], ...    ]
         """
         for root, dirs, files in os.walk(os.path.join(os.getcwd(), self.data_path)):
             for f in files:
-                self.raw_data_set.append( (str(os.path.split(root)[1]), str(os.path.join(root,f))) )
+                self.raw_data_set.append( [str(os.path.split(root)[1]), str(os.path.join(root,f))] )
 
     def print_raw_data_set(self):
         if not self.raw_data_set:
@@ -60,6 +60,7 @@ class Experiment(object):
         Shuffles the dataset, then cuts it in to k datasets
         RETURNS:
                 List of k shuffled datasets
-        """        
+        """
+        pass
 
     

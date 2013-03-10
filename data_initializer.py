@@ -1,5 +1,4 @@
 import re
-import pdb
 
 class DataInitializer(object):
     """
@@ -21,7 +20,16 @@ class DataInitializer(object):
         Retrieves the data set whose features matrix will be set up
         """
         self.data_set = data_set
-        
+        for d in self.data_set:
+            (n, s, b) = self.get_mail_elements(d[1])
+            d.append(n)
+            d.append(s)
+            d.append(b)
+
+    def print_data_set(self):
+        for d in self.data_set:
+#            print d
+            print d[:-1]
 
     def tf_idf(self, word, document, classification):
         """
@@ -69,6 +77,25 @@ class DataInitializer(object):
     def information_gain(self):
         pass
 
+    def clean_contact(self, name_string):
+        """
+        The names in the 'to, from, cc, bcc' sections of an email are often very muddy.
+        This is an attempt to normalize them to an extent.
+         - Sometimes its <name> <address>, <n2> <a2>,...  :-  just want names
+         - Sometimes of the form   first.last@company  :- just want first last
+        """
+        name_regex_obj = re.compile("(.*)<")
+        at_regex_obj = re.compile("(.)@")
+        name_groups = name_regex_obj.search(name_string)
+        if name_groups:
+            name_string = name_groups.group(1)
+        at_groups = at_regex_obj.search(name_string)
+        if at_groups:
+            name_string = name_string.split('@')[0]
+        name_string = name_string.replace('.', ' ')
+        return name_string.strip()
+        
+
     def get_mail_elements(self, document_address):
         """
         This method is meant to abstract an email in to objects we can parse.
@@ -91,6 +118,7 @@ class DataInitializer(object):
         bcc_regex_obj  = re.compile("^X-bcc:.*")
         body_regex_obj = re.compile("^X-FileName:.*")
         from_regex_obj = re.compile("^X-From:.*")
+        
         lines = f.readlines()
         for line in lines:
             if body_found:
@@ -99,22 +127,26 @@ class DataInitializer(object):
             if from_regex_obj.search(line):
                 line = line[len("X-From:"):]
                 for elt in line.split(","):
-                    if elt.strip() != '':
+                    elt = self.clean_contact(elt)
+                    if elt != '':
                         names.add(elt.strip())
             elif to_regex_obj.search(line):
                 line = line[len("X-To:"):]
                 for elt in line.split(","):
-                    if elt.strip() != '':
+                    elt = self.clean_contact(elt)
+                    if elt != '':
                         names.add(elt.strip())
             elif cc_regex_obj.search(line):
                 line = line[len("X-cc:"):]
                 for elt in line.split(","):
-                    if elt.strip() != '':
+                    elt = self.clean_contact(elt)
+                    if elt != '':
                         secondary_names.add(elt.strip())
             elif bcc_regex_obj.search(line):
                 line = line[len("X-bcc:"):]
                 for elt in line.split(","):
-                    if elt.strip() != '':
+                    elt = self.clean_contact(elt)
+                    if elt != '':
                         secondary_names.add(elt.strip())
             elif body_regex_obj.search(line):
                 body_found = True

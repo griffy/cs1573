@@ -21,7 +21,9 @@ class DataInitializer(object):
         """
         self.data_set = data_set
         for d in self.data_set:
-            (n, s, ss, b) = self.get_mail_elements(d[1])
+            (tod, m, n, s, ss, b) = self.get_mail_elements(d[1])
+            d.append(tod)
+            d.append(m)
             d.append(n)
             d.append(s)
             d.append(ss)
@@ -65,11 +67,53 @@ class DataInitializer(object):
         """
         pass
 
-    def parse_time_of_day(self, document):
-        pass
+    def parse_time_of_day(self, date):
+        tod_regex_obj = re.compile(r'.*(\d{2}):\d{2}:\d{2}.*')
+        hours_obj = tod_regex_obj.search(date)
+        hour = -1
+        if hours_obj:
+            hour = int(hours_obj.groups(1)[0])
+            if hour in range(9, 18):
+                return 'work'
+            elif hour in range(18, 22):
+                return 'evening'
+            elif hour in range(22, 25) or hour in range(0, 6):
+                return 'night'
+            elif hour in range(6, 10):
+                return 'morning'
+        else:
+            print "Hour not found!"
+            raise ValueError
+    
 
-    def parse_month(self, document):
-        pass
+    def parse_month(self, date):
+        if re.search('Jan', date, re.IGNORECASE):
+            return 'Jan'
+        elif re.search('Feb', date, re.IGNORECASE):
+            return 'Feb'
+        elif re.search('Mar', date, re.IGNORECASE):
+            return 'Mar'
+        elif re.search('Apr', date, re.IGNORECASE):
+            return 'Apr'
+        elif re.search('May', date, re.IGNORECASE):
+            return 'May'
+        elif re.search('Jun', date, re.IGNORECASE):
+            return 'Jun'
+        elif re.search('Jul', date, re.IGNORECASE):
+            return 'Jul'
+        elif re.search('Aug', date, re.IGNORECASE):
+            return 'Aug'
+        elif re.search('Sep', date, re.IGNORECASE):
+            return 'Sep'
+        elif re.search('Nov', date, re.IGNORECASE):
+            return 'Nov'
+        elif re.search('Oct', date, re.IGNORECASE):
+            return 'Oct'
+        elif re.search('Dec', date, re.IGNORECASE):
+            return 'Dec'
+        else:
+            print "Month not present"
+            raise ValueError
 
     def chi_square(self):
         pass
@@ -114,11 +158,14 @@ class DataInitializer(object):
         body_found = False
         body_text = ''
         subject_text = ''
+        month = ''
+        time_of_day = ''
         to_regex_obj   = re.compile("^X-To:.*")
         cc_regex_obj   = re.compile("^X-cc:.*")
         bcc_regex_obj  = re.compile("^X-bcc:.*")
         body_regex_obj = re.compile("^X-FileName:.*")
         from_regex_obj = re.compile("^X-From:.*")
+        date_regex_obj = re.compile("^Date:.*")        
         subject_regex_obj = re.compile("^Subject:.*")
         lines = f.readlines()
         for line in lines:
@@ -149,9 +196,12 @@ class DataInitializer(object):
                     elt = self.clean_contact(elt)
                     if elt != '':
                         secondary_names.add(elt.strip())
+            elif date_regex_obj.search(line):
+                month = self.parse_month(line)
+                time_of_day = self.parse_time_of_day(line)
             elif subject_regex_obj.search(line):
                 subject_text = line[len("Subject:"):]
             elif body_regex_obj.search(line):
                 body_found = True
         f.close()
-        return (names, secondary_names, subject_text.strip(), body_text.strip())
+        return (time_of_day, month, names, secondary_names, subject_text.strip(), body_text.strip())

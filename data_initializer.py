@@ -21,15 +21,15 @@ class DataInitializer(object):
         """
         self.data_set = data_set
         for d in self.data_set:
-            (n, s, b) = self.get_mail_elements(d[1])
+            (n, s, ss, b) = self.get_mail_elements(d[1])
             d.append(n)
             d.append(s)
+            d.append(ss)
             d.append(b)
 
     def print_data_set(self):
         for d in self.data_set:
-#            print d
-            print d[:-1]
+            print d
 
     def tf_idf(self, word, document, classification):
         """
@@ -113,12 +113,13 @@ class DataInitializer(object):
         secondary_names = set()
         body_found = False
         body_text = ''
+        subject_text = ''
         to_regex_obj   = re.compile("^X-To:.*")
         cc_regex_obj   = re.compile("^X-cc:.*")
         bcc_regex_obj  = re.compile("^X-bcc:.*")
         body_regex_obj = re.compile("^X-FileName:.*")
         from_regex_obj = re.compile("^X-From:.*")
-        
+        subject_regex_obj = re.compile("^Subject:.*")
         lines = f.readlines()
         for line in lines:
             if body_found:
@@ -148,7 +149,9 @@ class DataInitializer(object):
                     elt = self.clean_contact(elt)
                     if elt != '':
                         secondary_names.add(elt.strip())
+            elif subject_regex_obj.search(line):
+                subject_text = line[len("Subject:"):]
             elif body_regex_obj.search(line):
                 body_found = True
         f.close()
-        return (names, secondary_names, body_text.strip())
+        return (names, secondary_names, subject_text.strip(), body_text.strip())

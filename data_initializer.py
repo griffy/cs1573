@@ -1,6 +1,3 @@
-
-import sys
-import os
 import re
 
 class DataInitializer(object):
@@ -8,62 +5,61 @@ class DataInitializer(object):
     Class that will be used to set up the feature vector.
     
     Arguments (for constructor):
-        folder_name     :-      String that is to regexp match one of the enron
-                                folders (defaults to beck)
-    Methods:
-        initialize_mapping()    :-      Prints to stdout   <class> <file-path>
-                                        Fills   class_document_map dictionary
+        data_set     :-      List of tuples passed from driver.py
+                             [(classification1, path1), (classification2, path2),...]
+    Important Methods:
+
+    Goal:
+        Return a matrix of of the form |class|feature1|feature2|...|
+                                       |...  | ...    | ...    |...|
+
     """
     
-    def __init__(self, folder_name = 'beck'):
-        """
-        Given folder_name, supplies data_path, which contains the relative path
-        to that users email folders.
-        Wanted to do fuzzy matching because Rishi is forgetful
-        """
-        self.data_path = ''
-        self.class_document_map = dict()
-        
-        reg_obj = re.compile(".*" + folder_name + ".*", re.IGNORECASE)
-        if reg_obj.search("beck-s"):
-            self.data_path = "data/beck-s/"
-        elif reg_obj.search("former-d"):
-            self.data_path = "data/former-d/" 
-        elif reg_obj.search("kaminski-v"):
-            self.data_path = "data/kaminski-v/" 
-        elif reg_obj.search("kitchen-l"):
-            self.data_path = "data/kitchen-l/" 
-        elif reg_obj.search("lokay-m"):
-            self.data_path = "data/lokay-m/" 
-        elif reg_obj.search("sanders-r"):
-            self.data_path = "data/sanders-r/" 
-        elif reg_obj.search("williams-w3"):
-            self.data_path = "data/williams-w3/"
+    def __init__(self):
+        self.data_set = []
+        self.global_names = dict()
 
-    def initialize_mapping(self):
+    def initialize_matrix(self, data_set):
         """
-        Fills class_document_map   :-
-               class_document_map['classname'] = [emailpath_1, ..., emailpath_n]
-               Going to need this later for doq_freq()
+        Retrieves the data set whose features matrix will be set up
         """
-        for root, dirs, files in os.walk(os.path.join(os.getcwd(), self.data_path)):
-            for f in files:
-                if str(os.path.split(root)[1]) in self.class_document_map:
-                    self.class_document_map[str(os.path.split(root)[1])].append(str(os.path.join(root, f)))
+        self.data_set = data_set
+        for d in self.data_set:
+            (tod, month, names, subnames, subject, body) = self.get_mail_elements(d[1])
+            d.append(tod)
+            d.append(month)
+            d.append(names)
+            d.append(subnames)
+            d.append(subject)
+            d.append(body)
+        for d in self.data_set:
+            for n in d[4]:
+                if n in self.global_names:
+                   self.global_names[n] += 1
                 else:
-                    self.class_document_map[str(os.path.split(root)[1])] = []
-                    self.class_document_map[str(os.path.split(root)[1])].append(str(os.path.join(root, f)))
-                sys.stdout.write(str(os.path.split(root)[1]) + "\t" + \
-                                     str(os.path.join(root, f)) + "\n")
+                    self.global_names[n] = 1
+            for n in d[5]:
+                if n in self.global_names:
+                    self.global_names[n] += 1
+                else:
+                    self.global_names[n] = 1
 
-    def print_class_document_map(self):
+    def print_data_set(self):
         """
-        For testing purposes.
-        Just prints out the mapping between classifications and their emails.
-        (self.class_document_map)
+        For testing purposes
         """
-        for k in self.class_document_map:
-            print str(k) + " : " + str(self.class_document_map[k])
+        for d in self.raw_data_set:
+            print d
+
+    def print_global_names(self):
+        """
+        For testing purposes. Prints out all names mentioned in to, from, cc, and bcc
+        of all emails
+        """
+        # How many times must a name appear for it to matter as a feature?
+        for k in self.global_names.keys():
+            if self.global_names[k] > 3:
+                print str(k)  + '  :-  ' + str(self.global_names[k])
 
     def tf_idf(self, word, document, classification):
         """
@@ -86,27 +82,142 @@ class DataInitializer(object):
         """
         pass
 
+    def parse_time_of_day(self, date):
+        tod_regex_obj = re.compile(r'.*(\d{2}):\d{2}:\d{2}.*')
+        hours_obj = tod_regex_obj.search(date)
+        hour = -1
+        if hours_obj:
+            hour = int(hours_obj.groups(1)[0])
+            if hour in range(9, 18):
+                return 'work'
+            elif hour in range(18, 22):
+                return 'evening'
+            elif hour in range(22, 25) or hour in range(0, 6):
+                return 'night'
+            elif hour in range(6, 10):
+                return 'morning'
+        else:
+            print "Hour not found!"
+            raise ValueError
+    
 
-    def initialize_names_list(self):
-        """
-        Builds a list all the names in a users mailbox to check against
-        """
-        pass
-
-    def parse_names(self, document):
-        """
-        Parses document for names found in names_list
-        """
-        pass
-
-    def parse_time_of_day(self, document):
-        pass
-
-    def parse_month(self, document):
-        pass
+    def parse_month(self, date):
+        if re.search('Jan', date, re.IGNORECASE):
+            return 'Jan'
+        elif re.search('Feb', date, re.IGNORECASE):
+            return 'Feb'
+        elif re.search('Mar', date, re.IGNORECASE):
+            return 'Mar'
+        elif re.search('Apr', date, re.IGNORECASE):
+            return 'Apr'
+        elif re.search('May', date, re.IGNORECASE):
+            return 'May'
+        elif re.search('Jun', date, re.IGNORECASE):
+            return 'Jun'
+        elif re.search('Jul', date, re.IGNORECASE):
+            return 'Jul'
+        elif re.search('Aug', date, re.IGNORECASE):
+            return 'Aug'
+        elif re.search('Sep', date, re.IGNORECASE):
+            return 'Sep'
+        elif re.search('Nov', date, re.IGNORECASE):
+            return 'Nov'
+        elif re.search('Oct', date, re.IGNORECASE):
+            return 'Oct'
+        elif re.search('Dec', date, re.IGNORECASE):
+            return 'Dec'
+        else:
+            print "Month not present"
+            raise ValueError
 
     def chi_square(self):
         pass
 
     def information_gain(self):
         pass
+
+    def clean_contact(self, name_string):
+        """
+        The names in the 'to, from, cc, bcc' sections of an email are often very muddy.
+        This is an attempt to normalize them to an extent.
+         - Sometimes its <name> <address>, <n2> <a2>,...  :-  just want names
+         - Sometimes of the form   first.last@company  :- just want first last
+        """
+        name_regex_obj = re.compile("(.*)<")
+        at_regex_obj = re.compile("(.)@")
+        name_groups = name_regex_obj.search(name_string)
+        if name_groups:
+            name_string = name_groups.group(1)
+        at_groups = at_regex_obj.search(name_string)
+        if at_groups:
+            name_string = name_string.split('@')[0]
+        name_string = name_string.replace('.', ' ')
+        name_string = name_string.replace('\"', '')
+        return name_string.strip()
+        
+
+    def get_mail_elements(self, document_address):
+        """
+        This method is meant to abstract an email in to objects we can parse.
+        Two sets of words for names and a long string for the body.
+        ARGUMENTS
+                document_address :- The full path to the email we are parsing
+        RETURNS
+                (names, secondary_names, body_text)
+                        names           :- Set of names found in the To and From sections.
+                        secondary_names :- Set of names found in the cc and bcc sections.
+                        body_text       :- Long string that represents the body.
+        """
+        f = open(document_address)
+        names = set()
+        secondary_names = set()
+        body_found = False
+        body_text = ''
+        subject_text = ''
+        month = ''
+        time_of_day = ''
+        to_regex_obj   = re.compile("^X-To:.*")
+        cc_regex_obj   = re.compile("^X-cc:.*")
+        bcc_regex_obj  = re.compile("^X-bcc:.*")
+        body_regex_obj = re.compile("^X-FileName:.*")
+        from_regex_obj = re.compile("^X-From:.*")
+        date_regex_obj = re.compile("^Date:.*")        
+        subject_regex_obj = re.compile("^Subject:.*")
+        lines = f.readlines()
+        for line in lines:
+            if body_found:
+                body_text += line.strip() + " "
+                continue
+            if from_regex_obj.search(line):
+                line = line[len("X-From:"):]
+                for elt in line.split(","):
+                    elt = self.clean_contact(elt)
+                    if elt != '':
+                        names.add(elt.strip())
+            elif to_regex_obj.search(line):
+                line = line[len("X-To:"):]
+                for elt in line.split(","):
+                    elt = self.clean_contact(elt)
+                    if elt != '':
+                        names.add(elt.strip())
+            elif cc_regex_obj.search(line):
+                line = line[len("X-cc:"):]
+                for elt in line.split(","):
+                    elt = self.clean_contact(elt)
+                    if elt != '':
+                        secondary_names.add(elt.strip())
+            elif bcc_regex_obj.search(line):
+                line = line[len("X-bcc:"):]
+                for elt in line.split(","):
+                    elt = self.clean_contact(elt)
+                    if elt != '':
+                        secondary_names.add(elt.strip())
+            elif date_regex_obj.search(line):
+                month = self.parse_month(line)
+                time_of_day = self.parse_time_of_day(line)
+            elif subject_regex_obj.search(line):
+                subject_text = line[len("Subject:"):]
+            elif body_regex_obj.search(line):
+                body_found = True
+        f.close()
+        return (time_of_day, month, names, secondary_names, subject_text.strip(), body_text.strip())

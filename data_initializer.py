@@ -15,23 +15,51 @@ class DataInitializer(object):
 
     """
     
-    def __init__(self, data_set):
+    def __init__(self):
+        self.data_set = []
+        self.global_names = dict()
+
+    def initialize_matrix(self, data_set):
         """
         Retrieves the data set whose features matrix will be set up
         """
         self.data_set = data_set
         for d in self.data_set:
-            (tod, m, n, s, ss, b) = self.get_mail_elements(d[1])
+            (tod, month, names, subnames, subject, body) = self.get_mail_elements(d[1])
             d.append(tod)
-            d.append(m)
-            d.append(n)
-            d.append(s)
-            d.append(ss)
-            d.append(b)
+            d.append(month)
+            d.append(names)
+            d.append(subnames)
+            d.append(subject)
+            d.append(body)
+        for d in self.data_set:
+            for n in d[4]:
+                if n in self.global_names:
+                   self.global_names[n] += 1
+                else:
+                    self.global_names[n] = 1
+            for n in d[5]:
+                if n in self.global_names:
+                    self.global_names[n] += 1
+                else:
+                    self.global_names[n] = 1
 
     def print_data_set(self):
-        for d in self.data_set:
+        """
+        For testing purposes
+        """
+        for d in self.raw_data_set:
             print d
+
+    def print_global_names(self):
+        """
+        For testing purposes. Prints out all names mentioned in to, from, cc, and bcc
+        of all emails
+        """
+        # How many times must a name appear for it to matter as a feature?
+        for k in self.global_names.keys():
+            if self.global_names[k] > 3:
+                print str(k)  + '  :-  ' + str(self.global_names[k])
 
     def tf_idf(self, word, document, classification):
         """
@@ -51,19 +79,6 @@ class DataInitializer(object):
     def doc_freq(self, word, classification):
         """
         log( (num_docs_in_classification) / (1 + num_docs_with_word_in_it_in_classification) )
-        """
-        pass
-
-
-    def initialize_names_list(self):
-        """
-        Builds a list all the names in a users mailbox to check against
-        """
-        pass
-
-    def parse_names(self, document):
-        """
-        Parses document for names found in names_list
         """
         pass
 
@@ -137,6 +152,7 @@ class DataInitializer(object):
         if at_groups:
             name_string = name_string.split('@')[0]
         name_string = name_string.replace('.', ' ')
+        name_string = name_string.replace('\"', '')
         return name_string.strip()
         
 

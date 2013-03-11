@@ -1,4 +1,5 @@
 import re
+from email import Email
 
 class FeatureParser(object):
     """
@@ -13,61 +14,112 @@ class FeatureParser(object):
 
     """
 
-    def __init__(self, user_folder_uri, word_list):
+    def __init__(self, user_folder_uri):
         self.user_folder_uri = user_folder_uri
-        self.global_names = dict()
 
-    def get_feature_matrix(self, classification_folder):
+        self.load_emails()
+
+        self.collect_words()
+        self.collect_names()
+
+        self.prepare_features()
+
+    def load_emails(self):
         """
-            Returns a list of feature vectors representing the emails
-            contained within the specified classification folder
+            Loads the user's emails into an array we can manipulate in future methods
+
+            This may be a terrible idea; we'll see!
+        """
+        self.emails = []
+        for classification_folder in os.listdir(self.user_folder_uri):
+            for root, dirs, files in os.walk(os.path.join(self.user_folder_uri, 
+                                                          classification_folder)):
+                for f in files:
+                    email_uri = os.path.join(self.user_folder_uri, classification_folder, f)
+                    email = Email(email_uri)
+                    self.emails.append(email)
+
+    def collect_words(self):
+        """
+            Looks at all emails in all classification folders and compiles 
+            a dictionary containing the count of all words appearing in them
+        """
+        self.global_word_count = {}
+        self.class_word_count = {}
+        for email in self.emails:
+            if email.classification not in self.class_word_count:
+                self.class_word_count[email.classification] = {}
+
+            for word in email.get_words():
+                if word not in self.global_word_count:
+                    self.global_word_count[word] = 1
+                else:
+                    self.global_word_count[word] += 1
+
+                if word not in self.class_word_count[email.classification]:
+                    self.class_word_count[email.classification][word] = 1
+                else:
+                    self.class_word_count[email.classification][word] += 1
+
+    def collect_names(self):
+        """
+            Looks at all emails in all classification folders and compiles 
+            a dictionary containing the count of all names appearing in them
+        """
+        self.global_name_count = {}
+        self.class_name_count = {}
+        for email in self.emails:
+            if email.classification not in self.class_name_count:
+                self.class_name_count[email.classification] = {}
+
+            for name in email.get_receiver_names():
+                if name not in self.global_name_count:
+                    self.global_name_count[name] = 1
+                else:
+                    self.global_name_count[name] += 1
+
+                if name not in self.class_name_count[email.classification]:
+                    self.class_name_count[email.classification][name] = 1
+                else:
+                    self.class_name_count[email.classification][name] += 1
+
+    def prepare_features(self):
+        """
+            TODO: Uses information gain / chi-square to narrow down the word and name features
+        """
+        self.word_features = set()
+        self.name_features = set()
+
+        for word in self.global_word_count.keys():
+            self.word_features.add(word)
+
+        for name in self.global_name_count.keys():
+            self.name_features.add(name)
+
+
+    def get_feature_matrix(self):
+        """
+            Returns a list of feature dictionaries representing the emails in the user folder
         """
         feature_matrix = []
-        for root, dirs, emails in os.walk(os.path.join(self.user_folder_uri, 
-                                                       classification_folder)):
-            for email in emails:
-                email_uri = os.path.join(classification_folder, email)
-                names, secondary_names, body_text = self.get_mail_elements(email_uri)
+        for email in self.emails:
+            feature_matrix.append(self.parse_features(email))
+        return feature_matrix
 
-                # TODO: strip out unhelpful words from body_text 
-                #       by using chi-square / info gain
-
-                self.data_set.append()
-
-    def parse(self, email):
+    def parse_features(self, email):
         """
-            Returns a vector representation of an email
+            Returns a feature representation of an email
         """
+        features = {'month': '', 'time-of-day': '', 'words': {}, 'names': {}}
 
+        features['month'] = email.get_month()
+        features['time-of-day'] = email.get_time_of_day()
+        for word_feature in self.word_features:
+            features['words'][word_feature] = self.tf_idf(word_feature, email, email.classification)
+        for name_feature in self.name_features:
+            features['names'][name_feature] = name_feature in email.get_receiver_names()
 
-    def initialize_matrix(self):
-        """
-        """
-        self.data_set = []
-
-        for root, dirs, emails in os.walk(os.path.join(self.user_folder_uri, 
-                                                       self.classification_folder)):
-            for email in emails:
-                names, secondary_names, body_text = self.get_mail_elements(email)
-                self.data_set.append()
-        for d in self.data_set:
-            for n in d[4]:
-                if n in self.global_names:
-                   self.global_names[n] += 1
-                else:
-                    self.global_names[n] = 1
-            for n in d[5]:
-                if n in self.global_names:
-                    self.global_names[n] += 1
-                else:
-                    self.global_names[n] = 1
-
-    def print_data_set(self):
-        """
-        For testing purposes
-        """
-        for d in self.raw_data_set:
-            print d
+        return features
 
     def print_global_names(self):
         """
@@ -75,9 +127,9 @@ class FeatureParser(object):
         of all emails
         """
         # How many times must a name appear for it to matter as a feature?
-        for k in self.global_names.keys():
-            if self.global_names[k] > 3:
-                print str(k)  + '  :-  ' + str(self.global_names[k])
+        for k in self.global_name_count.keys():
+            if self.global_name_count[k] > 3:
+                print str(k)  + '  :-  ' + str(self.global_name_count[k])
 
     def tf_idf(self, word, document, classification):
         """
@@ -107,14 +159,3 @@ class FeatureParser(object):
         pass
 
 
-            if hour in range(9, 18):
-                return 'work'
-            elif hour in range(18, 22):
-                return 'evening'
-            elif hour in range(22, 25) or hour in range(0, 6):
-                return 'night'
-            elif hour in range(6, 9):
-                return 'morning'
-        else:
-            print "Hour not found!"
-            raise ValueError

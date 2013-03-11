@@ -60,6 +60,7 @@ class Email(object):
     """
     def __init__(self, uri):
         self.uri = uri
+        self.classification = os.path.split(os.path.dirname(uri))[1]
 
         fields = parse_email(uri)
 
@@ -123,6 +124,18 @@ class Email(object):
         """
         return self._extract_names(self.header_bcc)
 
+    def get_sender_name(self):
+        """
+            Returns the sender of this email
+        """
+        return self.get_from_names()[0]
+
+    def get_receiver_names(self):
+        """
+            Returns a list of names of receivers of this email
+        """
+        return self.get_to_names() + self.get_cc_names() + self.get_bcc_names()
+
     def get_hour(self):
         """
             Returns the hour the email was received (0..24)
@@ -161,3 +174,20 @@ class Email(object):
         elif re.search('Dec', self.datetime, re.IGNORECASE):
             return 'Dec'
         raise ValueError("Month not present")
+
+    def get_time_of_day(self):
+        hour = self.get_hour()
+        if hour in range(9, 18):
+            return 'work'
+        elif hour in range(18, 22):
+            return 'evening'
+        elif hour in range(22, 25) or hour in range(0, 6):
+            return 'night'
+        elif hour in range(6, 9):
+            return 'morning'
+
+    def get_words(self):
+        """
+            Returns a list of all words in the body of the email
+        """
+        return self.body.split()

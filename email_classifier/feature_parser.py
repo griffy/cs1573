@@ -1,4 +1,5 @@
 import re
+import os
 from email import Email
 
 class FeatureParser(object):
@@ -96,6 +97,13 @@ class FeatureParser(object):
         for name in self.global_name_count.keys():
             self.name_features.add(name)
 
+        print self.word_features
+
+    def reduce_features(using='information gain'):
+        if using == 'information gain':
+            self._information_gain()
+        elif using == 'chi square':
+            self._chi_square()
 
     def get_feature_matrix(self):
         """
@@ -152,10 +160,19 @@ class FeatureParser(object):
         """
         pass
 
-    def chi_square(self):
+    def _chi_square(self):
         pass
 
-    def information_gain(self):
+    def _information_gain(self):
+        # name_features
+        # word_features
+        # emails
+        # global_word_count
+        # class_word_count
+        # global_name_count
+        # class_name_count
         pass
 
+    def probability_class(self):
+        pass
 

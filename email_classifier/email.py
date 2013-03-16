@@ -1,17 +1,20 @@
 import re
+import os
 
-to_regex_obj = re.compile("^X-To:.*")
-cc_regex_obj = re.compile("^X-cc:.*")
-bcc_regex_obj = re.compile("^X-bcc:.*")
-body_regex_obj = re.compile("^X-FileName:.*")
-from_regex_obj = re.compile("^X-From:.*")
-date_regex_obj = re.compile("^Date:.*")        
-subject_regex_obj = re.compile("^Subject:.*")
+to_regex_obj = re.compile(r"^X-To:.*", flags=re.UNICODE)
+cc_regex_obj = re.compile(r"^X-cc:.*", flags=re.UNICODE)
+bcc_regex_obj = re.compile(r"^X-bcc:.*", flags=re.UNICODE)
+body_regex_obj = re.compile(r"^X-FileName:.*", flags=re.UNICODE)
+from_regex_obj = re.compile(r"^X-From:.*", flags=re.UNICODE)
+date_regex_obj = re.compile(r"^Date:.*", flags=re.UNICODE)        
+subject_regex_obj = re.compile(r"^Subject:.*", flags=re.UNICODE)
 
-tod_regex_obj = re.compile(r'.*(\d{2}):\d{2}:\d{2}.*')
+tod_regex_obj = re.compile(r'.*(\d{2}):\d{2}:\d{2}.*', flags=re.UNICODE)
 
-name_regex_obj = re.compile("(.*)<")
-at_regex_obj = re.compile("(.)@")
+name_regex_obj = re.compile(r"(.*)<", flags=re.UNICODE)
+at_regex_obj = re.compile(r"(.)@", flags=re.UNICODE)
+
+nonword_char_regex_obj = re.compile(r'[^\w\s\'\-]|_', flags=re.UNICODE)
 
 def parse_email(uri):
     """ 
@@ -71,6 +74,8 @@ class Email(object):
         self.header_bcc = fields[4]
         self.subject = fields[5]
         self.body = fields[6]
+
+        self.words = None
 
     def _extract_name(self, contact):
         """
@@ -190,4 +195,31 @@ class Email(object):
         """
             Returns a list of all words in the body of the email
         """
-        return self.body.split()
+        if self.words is not None:
+            return self.words
+
+        # replace non-word characters with spaces
+        word_character_string = nonword_char_regex_obj.sub(' ', self.body)
+        # lowercase everything
+        word_character_string = word_character_string.lower()
+        # split on whitespace characters
+        words = word_character_string.split()
+        # remove extraneous characters
+        for i in range(len(words)):
+            words[i] = words[i].strip("'-")
+        # remove non-words (two -- or '' won't be found in any real words)
+        words = filter(lambda w: w.find("--") == -1, words)
+        words = filter(lambda w: w.find("''") == -1, words)
+        # cache the result
+        self.words = words
+        return words
+
+    def count(self, word):
+        """
+            Counts the occurrences of the given word in the email
+        """
+        count = 0
+        for doc_word in self.get_words():
+            if word == doc_word:
+                count += 1
+        return count

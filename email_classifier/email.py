@@ -12,7 +12,7 @@ subject_regex_obj = re.compile(r"^Subject:.*", flags=re.UNICODE)
 tod_regex_obj = re.compile(r'.*(\d{2}):\d{2}:\d{2}.*', flags=re.UNICODE)
 
 name_regex_obj = re.compile(r"(.*)<", flags=re.UNICODE)
-at_regex_obj = re.compile(r"(.)@", flags=re.UNICODE)
+at_regex_obj = re.compile(r"(.*)@", flags=re.UNICODE)
 
 nonword_char_regex_obj = re.compile(r'[^\w\s\'\-]|_', flags=re.UNICODE)
 

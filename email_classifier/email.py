@@ -76,6 +76,7 @@ class Email(object):
         self.body = fields[6]
 
         self.words = None
+        self.max_freq = {}
 
     def _extract_name(self, contact):
         """
@@ -141,6 +142,12 @@ class Email(object):
         """
         return self.get_to_names() + self.get_cc_names() + self.get_bcc_names()
 
+    def get_names(self):
+        """
+            Returns a list of all names in the header of the email
+        """
+        return self.get_from_names() + self.get_receiver_names()
+        
     def get_hour(self):
         """
             Returns the hour the email was received (0..24)
@@ -223,3 +230,20 @@ class Email(object):
             if word == doc_word:
                 count += 1
         return count
+
+    def max_word_frequency(self, dictionary):
+        """
+            Returns the maximum frequency of any term in the email, using
+            the given dictionary (set of words)
+        """
+        if dictionary in self.max_freq and self.max_freq[dictionary] is not None:
+            return self.max_freq[dictionary]
+
+        max_freq = 0
+        for word in dictionary:
+            freq = self.count(word)
+            if freq > max_freq:
+                max_freq = freq
+        # cache the result
+        self.max_freq[dictionary] = max_freq
+        return max_freq

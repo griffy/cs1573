@@ -5,8 +5,8 @@ from ..dataset import *
 user_folder_uri = os.path.join(os.getcwd(), 'email_classifier/data/beck-s')
 
 class TestDataset(unittest.TestCase):
-	def setUp(self):
-		self.data_initializer = DataInitializer(user_folder_uri)
+	def setUp(self):pass
+		#self.data_initializer = DataInitializer(user_folder_uri)
 
 	def test_get_emails(self):
 		first_email = get_emails(user_folder_uri)[0]
@@ -34,7 +34,12 @@ class TestDataset(unittest.TestCase):
 		pass
 
 	def test_reduce_by_information_gain(self):
-		pass
+		emails = get_emails(user_folder_uri)
+		word_features, name_features = create_feature_sets(emails)
+		print word_features
+		word_features, name_features = reduce_feature_sets(word_features, name_features, emails, 0.95, 'information gain')
+		print word_features
+		print name_features
 
 	def test_reduce_by_chi_square(self):
 		pass

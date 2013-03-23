@@ -231,7 +231,20 @@ class Email(object):
                 count += 1
         return count
 
-    def max_word_frequency(self, dictionary):
+    def max_word_frequency(self):
+        """
+            Returns the maximum frequency of any word in the email
+        """
+        max_freq = 0
+        for word in self.get_words():
+            freq = self.count(word)
+            if freq > max_freq:
+                max_freq = freq
+        # cache the result
+        self.max_freq['all'] = max_freq
+        return max_freq
+
+    def max_word_frequency_old(self, dictionary):
         """
             Returns the maximum frequency of any term in the email, using
             the given dictionary (set of words)

@@ -210,23 +210,23 @@ def reduce_by_information_gain(word_features, name_features, classifications,
                                amount):
     """
         Uncomment to reduce the size of each feature set prior to computing info gain for each term
-        
-        new_word_features = set()
-        new_name_features = set()
-        i = 0
-        for word_feature in word_features:
-            if i == 50:
-                break
-            new_word_features.add(word_feature)
-            i += 1
-        i = 0
-        for name_feature in name_features:
-            if i == 50:
-                break
-            new_name_features.add(name_feature)
-            i += 1
-        word_features = set(new_word_features)
-        name_features = set(new_name_features)
+    
+    new_word_features = set()
+    new_name_features = set()
+    i = 0
+    for word_feature in word_features:
+        if i == 50:
+            break
+        new_word_features.add(word_feature)
+        i += 1
+    i = 0
+    for name_feature in name_features:
+        if i == 50:
+            break
+        new_name_features.add(name_feature)
+        i += 1
+    word_features = set(new_word_features)
+    name_features = set(new_name_features)
     """
 
     i = 0
@@ -350,7 +350,7 @@ def get_name_counts(emails):
         if email.classification not in class_name_count:
             class_name_count[email.classification] = {}
 
-        for name in email.get_names():
+        for name in email.get_from_names():
             if not name:
                 continue
 
@@ -367,7 +367,7 @@ def get_name_counts(emails):
 
     # loop through all the emails again and build up the class dictionaries
     for email in emails:
-        for name in email.get_names():
+        for name in email.get_from_names():
             if not name:
                 continue
 
@@ -402,26 +402,41 @@ def information_gain(term, classifications, global_term_count, class_term_count)
 
     return class_entropy + term_entropy + not_term_entropy
 
+_all_term_occurrences_cache = None
+_all_term_occurrences_in_class_cache = {}
+
 def term_probability(term, global_term_count):
-    terms = global_term_count.keys()
+    global _all_term_occurrences_cache
+
+    if _all_term_occurrences_cache is None:
+        terms = global_term_count.keys()
+        all_term_occurrences = 0.0
+        for t in terms:
+            all_term_occurrences += global_term_count[t]
+        _all_term_occurrences_cache = all_term_occurrences
 
     term_occurrences = global_term_count[term]
-    all_term_occurrences = 0.0
-    for term in terms:
-        all_term_occurrences += global_term_count[term]
-
-    return term_occurrences / all_term_occurrences
+    return term_occurrences / _all_term_occurrences_cache
 
 def class_probability(classification, global_term_count, class_term_count):
-    terms = global_term_count.keys()
+    global _all_term_occurrences_cache
+    global _all_term_occurrences_in_class_cache
 
-    all_term_occurrences_in_class = 0.0
-    all_term_occurrences = 0.0
-    for term in terms:
-        all_term_occurrences_in_class += class_term_count[classification][term]
-        all_term_occurrences += global_term_count[term]
+    if _all_term_occurrences_cache is None:
+        terms = global_term_count.keys()
+        all_term_occurrences = 0.0
+        for t in terms:
+            all_term_occurrences += global_term_count[t]
+        _all_term_occurrences_cache = all_term_occurrences
 
-    return all_term_occurrences_in_class / all_term_occurrences
+    if classification not in _all_term_occurrences_in_class_cache:
+        terms = global_term_count.keys()
+        all_term_occurrences_in_class = 0.0
+        for t in terms:
+            all_term_occurrences_in_class += class_term_count[classification][t]
+        _all_term_occurrences_in_class_cache[classification] = all_term_occurrences_in_class
+
+    return _all_term_occurrences_in_class_cache[classification] / _all_term_occurrences_cache
 
 def class_probability_given_term(classification, term, global_term_count, class_term_count):
     term_occurrences_in_class = class_term_count[classification][term]
@@ -429,14 +444,15 @@ def class_probability_given_term(classification, term, global_term_count, class_
     return term_occurrences_in_class / (1.0 * term_occurrences)
 
 def class_probability_given_not_term(classification, term, global_term_count, class_term_count):
-    terms = global_term_count.keys()
+    global _all_term_occurrences_in_class_cache
 
-    not_term_occurrences_in_class = 0.0
-    all_term_occurrences_in_class = 0.0
-    for t in terms:
-        if t != term:
-            not_term_occurrences_in_class += class_term_count[classification][t]
-        all_term_occurrences_in_class += class_term_count[classification][t]
+    if classification not in _all_term_occurrences_in_class_cache:
+        terms = global_term_count.keys()
+        all_term_occurrences_in_class = 0.0
+        for t in terms:
+            all_term_occurrences_in_class += class_term_count[classification][t]
+        _all_term_occurrences_in_class_cache[classification] = all_term_occurrences_in_class
 
-    return not_term_occurrences_in_class / all_term_occurrences_in_class
+    not_term_occurrences_in_class = _all_term_occurrences_in_class_cache[classification] - class_term_count[classification][term]
+    return not_term_occurrences_in_class / _all_term_occurrences_in_class_cache[classification]
 

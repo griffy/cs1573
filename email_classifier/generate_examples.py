@@ -6,7 +6,7 @@ def arff_format(example):
     rep = ""
     for feature_value in example.input_vector:
         rep += "%s," % feature_value
-    rep += "%s" % example.output
+    rep += "%s" % re.sub("\W", "_", example.output)
     return rep
 
 def main():

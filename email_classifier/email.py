@@ -76,7 +76,8 @@ class Email(object):
         self.body = fields[6]
 
         self.words = None
-        self.max_freq = {}
+        self.frequencies = {}
+        self.max_frequency = None
 
     def _extract_name(self, contact):
         """
@@ -225,38 +226,25 @@ class Email(object):
         """
             Counts the occurrences of the given word in the email
         """
-        count = 0
-        for doc_word in self.get_words():
-            if word == doc_word:
-                count += 1
-        return count
+        if word not in self.frequencies:
+            count = 0
+            for doc_word in self.get_words():
+                if word == doc_word:
+                    count += 1
+            # cache the result
+            self.frequencies[word] = count
+        return self.frequencies[word]
 
     def max_word_frequency(self):
         """
             Returns the maximum frequency of any word in the email
         """
-        max_freq = 0
-        for word in self.get_words():
-            freq = self.count(word)
-            if freq > max_freq:
-                max_freq = freq
-        # cache the result
-        self.max_freq['all'] = max_freq
-        return max_freq
-
-    def max_word_frequency_old(self, dictionary):
-        """
-            Returns the maximum frequency of any term in the email, using
-            the given dictionary (set of words)
-        """
-        if dictionary in self.max_freq and self.max_freq[dictionary] is not None:
-            return self.max_freq[dictionary]
-
-        max_freq = 0
-        for word in dictionary:
-            freq = self.count(word)
-            if freq > max_freq:
-                max_freq = freq
-        # cache the result
-        self.max_freq[dictionary] = max_freq
-        return max_freq
+        if self.max_frequency is None:
+            max_freq = 0
+            for word in self.get_words():
+                freq = self.count(word)
+                if freq > max_freq:
+                    max_freq = freq
+            # cache the result
+            self.max_frequency = max_freq
+        return self.max_frequency

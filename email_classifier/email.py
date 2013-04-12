@@ -235,6 +235,19 @@ class Email(object):
             self.frequencies[word] = count
         return self.frequencies[word]
 
+    def contains(self, word):
+        """
+            Checks the existence of a word in an email
+        """
+        if word not in self.frequencies:
+            flag = False
+            for doc_word in self.get_words():
+                if word == doc_word:
+                    flag = True
+                    break
+            return flag
+        return self.frequencies[word] > 0
+
     def max_word_frequency(self):
         """
             Returns the maximum frequency of any word in the email

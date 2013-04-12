@@ -23,6 +23,7 @@ class DataInitializer(object):
         self.user_folder_uri = user_folder_uri
         # load the emails in the user's folder
         self.emails = get_emails(user_folder_uri)
+        self.total_num_emails = len(self.emails)
         # store the emails per classification
         self.classification_emails = {}
         for classification in os.listdir(self.user_folder_uri):
@@ -31,6 +32,17 @@ class DataInitializer(object):
         word_features, name_features = extract_feature_sets(self.emails, reduce_using)
         self.word_features = word_features
         self.name_features = name_features
+        self.build_doc_counts_per_word()
+
+    def build_doc_counts_per_word(self):
+        self.doc_counts_per_feature = {}
+        for feature in self.word_features:
+            print "Computing doc counts for feature: %s" % feature
+            num_docs_with_feature = 0
+            for email in self.emails:
+                if email.contains(feature):
+                    num_docs_with_feature += 1
+            self.doc_counts_per_feature[feature] = num_docs_with_feature
 
     def get_example_type(self):
         classifications = os.listdir(self.user_folder_uri)
@@ -76,20 +88,20 @@ class DataInitializer(object):
                 name_occurs = feature[len('__name__'):] in email.get_from_names()
                 input_vector.append(name_occurs)
             else:
-                tf_idf_weight = self._tf_idf(feature, email, email.classification)
+                tf_idf_weight = self._tf_idf(feature, email)
                 if tf_idf_weight > 0.0:
                     print tf_idf_weight
                 input_vector.append(tf_idf_weight)
 
         return example_type.create_example(email.uri, input_vector, email.classification)
 
-    def _tf_idf(self, word, document, classification):
+    def _tf_idf(self, word, document):
         """
             Computes the tf-idf value for a
-            'word' in training example 'document' with classification 'classification'
+            'word' in training example 'document'
         """
         tf = self._term_freq(word, document)
-        idf = self._inverse_doc_freq(word, classification)
+        idf = self._inverse_doc_freq(word)
         if tf > 0.0:
             print "tf: %s, %f" % (word, tf)
             print "idf: %s, %f" % (word, idf)
@@ -102,22 +114,18 @@ class DataInitializer(object):
             (max_number_of_times_any_word_appears_in_document)
         """
         #tf = document.count(word)
-        tf = document.count(word) / (1.0 * document.max_word_frequency())
+        tf = document.count(word) / (1.0 * document.max_word_frequency())               # 2 passes, should be 1
         #print "tf: %s, %f" % (word, tf)
         return tf
 
-    def _inverse_doc_freq(self, word, classification):
+    def _inverse_doc_freq(self, word):
         """
-            log( (num_docs_in_classification) / (1 + num_docs_with_word_in_it_in_classification) )
-        """
-        num_docs = 0
-        num_docs_with_word = 0
+WRONG            log( (num_docs_in_classification) / (1 + num_docs_with_word_in_it) )
+RIGHT            log( num_docs / (1 + num_docs_with_word) )
 
-        for email in self.classification_emails[classification]:
-            num_docs += 1
-            if email.count(word) > 0:
-                num_docs_with_word += 1
-        idf = math.log(num_docs / (1 + 1.0 * num_docs_with_word))
+        """
+        num_docs_with_word = self.doc_counts_per_feature[word]
+        idf = math.log(self.total_num_emails / (1 + 1.0 * num_docs_with_word))
         #print "idf: %s, %f" % (word, idf)
         return idf
 

@@ -90,8 +90,7 @@ class DataInitializer(object):
         for i in range(num_processes):
             processes[i].join()
 
-        # move through the queue and compile our counts
-        pdb.set_trace()
+        # move through the queue and compile our counts 
         while not doc_counts_queue.empty():
             doc_count_item = doc_counts_queue.get(False)
             feature = doc_count_item[0]

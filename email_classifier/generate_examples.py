@@ -10,12 +10,13 @@ def arff_format(example):
     return rep
 
 def main():
-    if len(sys.argv) < 2:
-        sys.stderr.write("Need to pass user folder name\n")
+    if len(sys.argv) < 3:
+        sys.stderr.write("Usage: python generate_examples.py <user-folder> <percent-reduction>\n")
         return
 
     user_folder_uri = sys.argv[1]
-    data_initializer = DataInitializer(user_folder_uri)
+    reduce_features_by = float(sys.argv[2])
+    data_initializer = DataInitializer(user_folder_uri, reduce_features_by)
     example_type, examples = data_initializer.preprocess()
 
     with open(user_folder_uri + "_examples.arff", 'w') as example_file:

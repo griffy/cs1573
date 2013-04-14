@@ -1,6 +1,9 @@
 import re
 import os
 import math
+import pdb
+from multiprocessing import Process, cpu_count, Queue
+from multiprocessing.queues import SimpleQueue
 from email import Email
 
 class DataInitializer(object):
@@ -19,7 +22,7 @@ class DataInitializer(object):
             the above form. So, a matrix + the overhead of many, many objects.
 
     """
-    def __init__(self, user_folder_uri, reduce_using='information gain'):
+    def __init__(self, user_folder_uri, reduce_by, reduce_using='information gain'):
         self.user_folder_uri = user_folder_uri
         # load the emails in the user's folder
         self.emails = get_emails(user_folder_uri)
@@ -29,20 +32,72 @@ class DataInitializer(object):
         for classification in os.listdir(self.user_folder_uri):
             self.classification_emails[classification] = filter(lambda e: e.classification == classification, self.emails)
         # pull out the (term) features we are interested in from the dataset
-        word_features, name_features = extract_feature_sets(self.emails, reduce_using)
+        word_features, name_features = extract_feature_sets(self.emails, reduce_by, reduce_using)
         self.word_features = word_features
         self.name_features = name_features
-        self.build_doc_counts_per_word()
-
-    def build_doc_counts_per_word(self):
+        # build up a count of documents with each feature
         self.doc_counts_per_feature = {}
-        for feature in self.word_features:
-            print "Computing doc counts for feature: %s" % feature
+        self.build_doc_counts_per_feature()
+
+    def _build_doc_counts_per_feature(self, feature_set_split, doc_counts_queue):
+        pid = os.getpid()
+        for index, feature in enumerate(feature_set_split):
+            if index % 10 == 0:
+                print "Process %d computing doc counts for feature %d: %s" % (pid, index, feature)
             num_docs_with_feature = 0
             for email in self.emails:
                 if email.contains(feature):
                     num_docs_with_feature += 1
-            self.doc_counts_per_feature[feature] = num_docs_with_feature
+            doc_counts_queue.put([feature, num_docs_with_feature])
+        doc_counts_queue.close()
+
+    def build_doc_counts_per_feature(self):
+        """ 
+            Note: uses multiprocessing to speed up this calculation
+        """
+
+        print "Feature set size: %d" % len(self.word_features)
+        
+        # find the number of virtual cores we have and use that many processes
+        num_processes = cpu_count()
+        print "Using %d processes to compute document counts per feature" % num_processes
+
+        # split up the feature set so each process has a share
+        feature_set_splits = []
+        for i in range(num_processes):
+            feature_set_splits.append([])
+
+        cur_process = 0
+        i = 0
+        for feature in self.word_features:
+            if i > len(self.word_features) / num_processes:
+                cur_process += 1
+                i = 0
+            feature_set_splits[cur_process].append(feature)
+            i += 1
+
+        # create a shared queue that will hold the counts from all processes
+        doc_counts_queue = Queue()
+        # create the processes, and let them do their thing
+        processes = []
+        for i in range(num_processes):
+            process = Process(target=self._build_doc_counts_per_feature, 
+                              args=(feature_set_splits[i], doc_counts_queue))
+            processes.append(process)
+
+            process.start()
+        # wait for them all to finish their jobs
+        for i in range(num_processes):
+            processes[i].join()
+
+        # move through the queue and compile our counts
+        pdb.set_trace()
+        while not doc_counts_queue.empty():
+            doc_count_item = doc_counts_queue.get(False)
+            feature = doc_count_item[0]
+            doc_count = doc_count_item[1]
+            self.doc_counts_per_feature[feature] = doc_count
+        print len(self.doc_counts_per_feature)
 
     def get_example_type(self):
         classifications = os.listdir(self.user_folder_uri)
@@ -77,8 +132,6 @@ class DataInitializer(object):
         """
             Returns an Example representing the given email
         """
-        # FIXME: not a fan of this method or its hard-coded assumptions
-
         input_vector = []
         input_vector.append(email.get_month())
         input_vector.append(email.get_time_of_day())
@@ -114,7 +167,7 @@ class DataInitializer(object):
             (max_number_of_times_any_word_appears_in_document)
         """
         #tf = document.count(word)
-        tf = document.count(word) / (1.0 * document.max_word_frequency())               # 2 passes, should be 1
+        tf = document.count(word) / (1.0 * document.max_word_frequency())
         #print "tf: %s, %f" % (word, tf)
         return tf
 
@@ -171,7 +224,7 @@ class Example(object):
             return self.input_vector[feature_index]
         return None
 
-def extract_feature_sets(emails, using='information gain'):
+def extract_feature_sets(emails, reduce_by, using='information gain'):
     """
         Given a list of emails, extracts two sets of features from them: words and names
 
@@ -179,7 +232,7 @@ def extract_feature_sets(emails, using='information gain'):
         'using' argument.
     """
     word_features, name_features = create_feature_sets(emails)
-    return reduce_feature_sets(word_features, name_features, emails, 0.95, using)
+    return reduce_feature_sets(word_features, name_features, emails, reduce_by, using)
 
 def create_feature_sets(emails):
     """ 
@@ -275,7 +328,8 @@ def reduce_by_information_gain(word_features, name_features, classifications,
     new_name_features = set()
 
     k_word = int(len(word_features) * (1 - amount))
-    k_name = int(len(name_features) * (1 - amount))
+    # FIXME: for now, let's stomp out name features
+    k_name = int(len(name_features) * (1 - 1))
 
     word_feature_info_gains.sort(reverse=True)
     name_feature_info_gains.sort(reverse=True)
